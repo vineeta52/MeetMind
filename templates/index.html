@@ -1,97 +1,672 @@
-<!DOCTYPE html> 
-<html lang="en"> 
-    <head> 
-        <meta charset="UTF-8">
-         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-         <title>Meeting Prep Agent</title>
-     <style> 
-     *{ margin:0; 
-        padding:0;
-        box-sizing:border-box;
-        font-family:Segoe UI, sans-serif; 
-        } 
-        body{ 
-            background:#0f172a; 
-            color:white; 
-            min-height:100vh; 
-            display:flex; 
-            justify-content:center; 
-            align-items:center; 
-            padding:30px; 
-            } 
-            .container{ 
-                width:100%; 
-                max-width:900px; 
-                } 
-                h1{ 
-                    text-align:center; 
-                    margin-bottom:25px; 
-                    color:#38bdf8; 
-                    } 
-                    .card{ 
-                        background:#1e293b; 
-                        padding:20px; 
-                        border-radius:15px; 
-                        margin-bottom:20px; 
-                        box-shadow:0 4px 15px rgba(0,0,0,0.3);
-                        } 
-                        label{ 
-                            display:block; 
-                            margin-bottom:8px; 
-                            font-weight:600; 
-                            } 
-                            input, textarea{ 
-                                width:100%; 
-                                padding:12px; 
-                                border:none; 
-                                border-radius:10px; 
-                                background:#334155; 
-                                color:white; 
-                                margin-bottom:15px; 
-                                } 
-                                input:focus, textarea:focus{ 
-                                    outline:none; 
-                                    border:2px solid #38bdf8; 
-                                    } 
-                                    button{ 
-                                        border:none; 
-                                        padding:12px 18px; 
-                                        border-radius:10px; 
-                                        cursor:pointer; 
-                                        font-size:15px; 
-                                        font-weight:600; 
-                                        } 
-                                        .primary-btn{ 
-                                            background:#2563eb; 
-                                            color:white; 
-                                            } 
-                                        .primary-btn:hover{
-                                             background:#1d4ed8; 
-                                             } 
-                                        .secondary-btn{ 
-                                            background:#10b981; 
-                                            color:white; 
-                                            } 
-                                        .secondary-btn:hover{ 
-                                            background:#059669; 
-                                            } 
-                                        .output{ 
-                                            background:#0f172a; 
-                                            padding:15px; 
-                                            border-radius:10px; 
-                                            min-height:180px; 
-                                            white-space:pre-wrap; 
-                                            line-height:1.6; 
-                                            } 
-                                            .status{ 
-                                                margin-top:10px; 
-                                                color:#22c55e; 
-                                                font-weight:bold; 
-                                                } 
-                                            .loading{ 
-                                                color:#facc15; 
-                                                } 
-                                            </style> 
-                                            </head> 
-                                            <body> 
-                                                <div class="container"> <h1>🤖 Meeting Prep Agent</h1> <!-- Generate Briefing --> <div class="card"> <label>Contact Name</label> <input type="text" id="contact" placeholder="Enter contact name..." > <button class="primary-btn" onclick="generateBriefing()" > Generate Briefing </button> </div> <!-- AI Briefing --> <div class="card"> <h2>AI Meeting Briefing</h2> <br> <div id="briefing" class="output"> Your briefing will appear here... </div> </div> <!-- Save Notes --> <div class="card"> <h2>Save Meeting Notes</h2> <br> <textarea id="notes" rows="5" placeholder="Enter meeting notes..." ></textarea> <button class="secondary-btn" onclick="saveNotes()" > Save Notes </button> <div id="status" class="status"></div> </div> </div> <script> async function generateBriefing(){ const contact = document.getElementById("contact").value.trim(); const briefingBox = document.getElementById("briefing"); if(!contact){ alert("Please enter a contact name"); return; } briefingBox.innerHTML = '<span class="loading">Generating briefing...</span>'; try{ const response = await fetch("/get_briefing",{ method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ contact:contact }) }); const data = await response.json(); if(response.ok){ briefingBox.textContent = data.briefing; } else{ briefingBox.textContent = data.error; } }catch(error){ briefingBox.textContent = "Server connection failed."; } } async function saveNotes(){ const contact = document.getElementById("contact").value.trim(); const notes = document.getElementById("notes").value.trim(); const status = document.getElementById("status"); if(!contact || !notes){ alert("Please fill all fields"); return; } try{ const response = await fetch("/save_notes",{ method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ contact:contact, notes:notes }) }); const data = await response.json(); if(response.ok){ status.textContent = data.status; document.getElementById("notes").value = ""; }else{ status.textContent = data.error; } }catch(error){ status.textContent = "Failed to connect to server."; } } </script> </body> </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MeetMind</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f5f0e8;
+      color: #2a1a1a;
+    }
+ 
+    /* NAV */
+    nav {
+      background: #6b1a1a;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-logo {
+      font-family: 'Playfair Display', serif;
+      color: #f5f0e8;
+      font-size: 20px;
+      letter-spacing: 1px;
+    }
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+    .nav-links a {
+      color: #e8c8c8;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0.5px;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: white; }
+    .nav-pill {
+      background: #f5f0e8;
+      color: #6b1a1a;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 99px;
+      letter-spacing: 0.5px;
+    }
+ 
+    /* HERO */
+    .hero {
+      background: #f5f0e8;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 520px;
+      overflow: hidden;
+      position: relative;
+    }
+    .hero-left {
+      padding: 4rem 3rem 4rem 4rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      z-index: 2;
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #9b3a3a;
+      margin-bottom: 1rem;
+    }
+    .hero-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 46px;
+      line-height: 1.15;
+      color: #2a1a1a;
+      margin-bottom: 1.2rem;
+    }
+    .hero-title em {
+      color: #6b1a1a;
+      font-style: italic;
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: #7a5c5c;
+      line-height: 1.7;
+      font-weight: 300;
+      max-width: 340px;
+      margin-bottom: 2rem;
+    }
+    .hero-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #6b1a1a;
+      color: #f5f0e8;
+      border: none;
+      border-radius: 99px;
+      padding: 14px 28px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      width: fit-content;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .hero-btn:hover { background: #8b2a2a; }
+ 
+    .hero-right {
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-right img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+    }
+    .hero-overlay {
+      position: absolute;
+      bottom: 2rem;
+      left: 1.5rem;
+      background: rgba(107,26,26,0.88);
+      color: #f5f0e8;
+      border-radius: 16px;
+      padding: 1rem 1.3rem;
+      font-size: 13px;
+      backdrop-filter: blur(4px);
+      max-width: 200px;
+    }
+    .hero-overlay strong {
+      font-family: 'Playfair Display', serif;
+      font-size: 15px;
+      display: block;
+      margin-bottom: 4px;
+    }
+ 
+    /* WAVE DIVIDER */
+    .wave {
+      background: #6b1a1a;
+      margin: 0;
+      line-height: 0;
+    }
+    .wave svg { display: block; }
+ 
+    /* STATS STRIP */
+    .stats-strip {
+      background: #6b1a1a;
+      padding: 2rem 4rem;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      text-align: center;
+    }
+    .strip-stat-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 36px;
+      color: #f5f0e8;
+    }
+    .strip-stat-label {
+      font-size: 11px;
+      color: #e8c8c8;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-top: 4px;
+    }
+    .strip-divider {
+      width: 1px;
+      background: rgba(245,240,232,0.2);
+      align-self: stretch;
+      justify-self: center;
+    }
+ 
+    /* MAIN CONTENT */
+    .main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+ 
+    .section-eyebrow {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #9b3a3a;
+      margin-bottom: 8px;
+    }
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      color: #2a1a1a;
+      margin-bottom: 2rem;
+    }
+ 
+    /* FEATURE ROW */
+    .feature-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 3rem;
+      align-items: center;
+    }
+    .feature-row.reverse { direction: rtl; }
+    .feature-row.reverse > * { direction: ltr; }
+ 
+    .feature-img {
+      border-radius: 24px;
+      overflow: hidden;
+      aspect-ratio: 4/3;
+    }
+    .feature-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s;
+    }
+    .feature-img img:hover { transform: scale(1.03); }
+ 
+    .feature-text h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      color: #2a1a1a;
+      margin-bottom: 10px;
+    }
+    .feature-text p {
+      font-size: 14px;
+      color: #7a5c5c;
+      line-height: 1.75;
+      margin-bottom: 1rem;
+    }
+    .feature-tag {
+      display: inline-block;
+      background: #f0e0e0;
+      color: #6b1a1a;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 99px;
+      letter-spacing: 0.5px;
+    }
+ 
+    /* CARDS */
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 2rem;
+      margin-bottom: 1.2rem;
+      border: 1px solid #e8ddd0;
+    }
+ 
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+    .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      color: #2a1a1a;
+    }
+    .card-icon {
+      width: 42px; height: 42px;
+      background: #f0e0e0;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+ 
+    label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #9b7070;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: block;
+      margin-bottom: 8px;
+    }
+ 
+    input, textarea {
+      width: 100%;
+      border: 1.5px solid #e8ddd0;
+      border-radius: 14px;
+      padding: 13px 16px;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      color: #2a1a1a;
+      background: #faf8f5;
+      margin-bottom: 14px;
+      resize: vertical;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #6b1a1a;
+      background: white;
+    }
+    input::placeholder, textarea::placeholder { color: #c8b8b8; }
+ 
+    .primary-btn {
+      width: 100%;
+      background: #6b1a1a;
+      color: #f5f0e8;
+      border: none;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: 0.3px;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .primary-btn:hover { background: #8b2a2a; }
+    .primary-btn:active { transform: scale(0.99); }
+    .primary-btn:disabled { background: #c89090; cursor: not-allowed; }
+ 
+    .secondary-btn {
+      width: 100%;
+      background: #f0e0e0;
+      color: #6b1a1a;
+      border: 1.5px solid #d8b8b8;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .secondary-btn:hover { background: #e8c8c8; }
+    .secondary-btn:active { transform: scale(0.99); }
+    .secondary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+ 
+    .briefing-card { display: none; }
+ 
+    .memory-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 99px;
+      letter-spacing: 0.3px;
+    }
+    .memory-pill.found { background: #f0e0e0; color: #6b1a1a; }
+    .memory-pill.none { background: #f0ece6; color: #b8a090; }
+ 
+    .output {
+      font-size: 14px;
+      color: #4a3030;
+      line-height: 1.9;
+      white-space: pre-wrap;
+      min-height: 80px;
+    }
+    .output.placeholder { color: #c8b8b8; font-style: italic; }
+ 
+    .divider { height: 1px; background: #f0e8e0; margin: 16px 0; }
+ 
+    .status-success {
+      margin-top: 12px; font-size: 13px;
+      color: #5a7a5a; font-weight: 500;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .status-error { margin-top: 12px; font-size: 13px; color: #c03030; }
+ 
+    .spinner {
+      display: inline-block;
+      width: 15px; height: 15px;
+      border: 2px solid rgba(245,240,232,0.3);
+      border-top-color: #f5f0e8;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      flex-shrink: 0;
+    }
+    .spinner.dark {
+      border-color: #e8ddd0;
+      border-top-color: #6b1a1a;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+ 
+    /* DARK SECTION */
+    .dark-section {
+      background: #2a1a1a;
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+    .dark-section h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      color: #f5f0e8;
+      margin-bottom: 1rem;
+    }
+    .dark-section p {
+      font-size: 14px;
+      color: #b8a090;
+      max-width: 480px;
+      margin: 0 auto 2rem;
+      line-height: 1.7;
+    }
+ 
+    /* FOOTER */
+    footer {
+      background: #6b1a1a;
+      padding: 2rem;
+      text-align: center;
+    }
+    footer .footer-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      color: #f5f0e8;
+      margin-bottom: 6px;
+    }
+    footer p { font-size: 12px; color: #e8c8c8; }
+ 
+    @media (max-width: 640px) {
+      .hero { grid-template-columns: 1fr; }
+      .hero-right { height: 260px; }
+      .feature-row { grid-template-columns: 1fr; }
+      .feature-row.reverse { direction: ltr; }
+      .stats-strip { grid-template-columns: 1fr; padding: 2rem; }
+      .nav-links { display: none; }
+      .hero-left { padding: 2.5rem 1.5rem; }
+      .hero-title { font-size: 32px; }
+    }
+  </style>
+</head>
+<body>
+ 
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">🧠 MeetMind</div>
+  <ul class="nav-links">
+    <li><a href="#briefing-section">Briefing</a></li>
+    <li><a href="#notes-section">Save Notes</a></li>
+  </ul>
+  <div class="nav-pill">✦ Powered by Groq</div>
+</nav>
+ 
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">✦ AI-Powered Meeting Intelligence</div>
+    <h1 class="hero-title">Never walk into a meeting <em>unprepared.</em></h1>
+    <p class="hero-sub">MeetMind remembers every conversation, follow-up, and preference — so you always know exactly what to say.</p>
+    <a href="#briefing-section" class="hero-btn">✨ Generate a briefing</a>
+  </div>
+  <div class="hero-right">
+    <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q=80" alt="Professional meeting" />
+    <div class="hero-overlay">
+      <strong>Memory Found ✦</strong>
+      Last met 3 days ago. Budget: ₹50,000. Prefers mornings.
+    </div>
+  </div>
+</div>
+ 
+<!-- STATS STRIP -->
+<div class="stats-strip">
+  <div>
+    <div class="strip-stat-num" id="contactCount">—</div>
+    <div class="strip-stat-label">Contacts Remembered</div>
+  </div>
+  <div class="strip-divider"></div>
+  <div>
+    <div class="strip-stat-num" id="notesCount">—</div>
+    <div class="strip-stat-label">Notes Saved</div>
+  </div>
+  <div class="strip-divider"></div>
+  <div>
+    <div class="strip-stat-num">100%</div>
+    <div class="strip-stat-label">Meeting Ready</div>
+  </div>
+</div>
+ 
+<!-- FEATURES -->
+<div class="main">
+ 
+  <div style="text-align:center; margin-bottom: 2.5rem;">
+    <div class="section-eyebrow">How it works</div>
+    <div class="section-title">Memory that works <em style="font-style:italic; color:#6b1a1a;">for you</em></div>
+  </div>
+ 
+  <div class="feature-row">
+    <div class="feature-img">
+      <img src="https://images.unsplash.com/photo-1553877522-43269d4ea984?w=700&q=80" alt="Taking notes" />
+    </div>
+    <div class="feature-text">
+      <span class="feature-tag">✦ Step 1</span>
+      <h3 style="margin-top:10px;">Save your meeting notes</h3>
+      <p>After every conversation, jot down what matters — budget, preferences, follow-ups, decisions. MeetMind stores it all permanently, never forgetting a detail.</p>
+    </div>
+  </div>
+ 
+  <div class="feature-row reverse">
+    <div class="feature-img">
+      <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=700&q=80" alt="Meeting preparation" />
+    </div>
+    <div class="feature-text">
+      <span class="feature-tag">✦ Step 2</span>
+      <h3 style="margin-top:10px;">Walk in fully briefed</h3>
+      <p>Before your next meeting, generate a personalized briefing in seconds. Get a full summary of past interactions, key reminders, and smart conversation openers.</p>
+    </div>
+  </div>
+ 
+  <!-- GENERATE BRIEFING CARD -->
+  <div id="briefing-section">
+    <div class="section-eyebrow" style="margin-bottom:8px;">Generate briefing</div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Who are you meeting today?</div>
+        <div class="card-icon">🔍</div>
+      </div>
+      <label>Contact name</label>
+      <input type="text" id="contact" placeholder="e.g. Rahul, Priya, Arjun..." />
+      <button class="primary-btn" onclick="generateBriefing()" id="briefingBtn">
+        ✨ Generate my briefing
+      </button>
+    </div>
+ 
+    <div class="card briefing-card" id="briefingCard">
+      <div class="card-header">
+        <div class="card-title">Your briefing</div>
+        <span id="memoryPill" class="memory-pill none">⚪ No memory yet</span>
+      </div>
+      <div class="divider"></div>
+      <div id="briefing" class="output placeholder">Your briefing will appear here...</div>
+    </div>
+  </div>
+ 
+  <!-- SAVE NOTES CARD -->
+  <div id="notes-section" style="margin-top: 2rem;">
+    <div class="section-eyebrow" style="margin-bottom:8px;">Save notes</div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">After the meeting</div>
+        <div class="card-icon">💾</div>
+      </div>
+      <label>Contact name</label>
+      <input type="text" id="notesContact" placeholder="e.g. Rahul" />
+      <label>What happened?</label>
+      <textarea id="notes" rows="4" placeholder="Budget discussed, follow-ups, preferences, key decisions..."></textarea>
+      <button class="secondary-btn" onclick="saveNotes()" id="saveBtn">
+        💾 Save to memory
+      </button>
+      <div id="status"></div>
+    </div>
+  </div>
+ 
+</div>
+ 
+<!-- DARK SECTION -->
+<div class="dark-section">
+  <h2>Built for professionals<br>who <em style="color:#e8c8c8; font-style:italic;">mean business.</em></h2>
+  <p>MeetMind turns your scattered meeting notes into a powerful memory layer — so every relationship gets the attention it deserves.</p>
+</div>
+ 
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">🧠 MeetMind</div>
+  <p>Powered by Groq + LLaMA 3 ✦ Persistent Memory</p>
+</footer>
+ 
+<script>
+async function generateBriefing() {
+  const contact = document.getElementById('contact').value.trim();
+  const box = document.getElementById('briefing');
+  const btn = document.getElementById('briefingBtn');
+  const card = document.getElementById('briefingCard');
+  const pill = document.getElementById('memoryPill');
+  if (!contact) { alert('Please enter a contact name'); return; }
+  card.style.display = 'block';
+  box.className = 'output placeholder';
+  box.innerHTML = '<span class="spinner dark" style="vertical-align:middle;margin-right:8px;"></span> Recalling everything about ' + contact + '...';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Thinking...';
+  try {
+    const res = await fetch('/get_briefing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contact })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      box.className = 'output';
+      box.textContent = data.briefing;
+      pill.className = data.has_memory ? 'memory-pill found' : 'memory-pill none';
+      pill.textContent = data.has_memory ? '🔴 Memory found' : '⚪ No memory yet';
+    } else {
+      box.className = 'output';
+      box.textContent = data.error;
+    }
+  } catch (e) {
+    box.className = 'output';
+    box.textContent = 'Could not reach server.';
+  }
+  btn.disabled = false;
+  btn.innerHTML = '✨ Generate my briefing';
+}
+ 
+async function saveNotes() {
+  const contact = document.getElementById('notesContact').value.trim() || document.getElementById('contact').value.trim();
+  const notes = document.getElementById('notes').value.trim();
+  const status = document.getElementById('status');
+  const btn = document.getElementById('saveBtn');
+  if (!contact || !notes) { alert('Please fill in both fields'); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner dark"></span> Saving...';
+  try {
+    const res = await fetch('/save_notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contact, notes })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      status.className = 'status-success';
+      status.innerHTML = '✅ ' + data.status;
+      document.getElementById('notes').value = '';
+      updateStats();
+    } else {
+      status.className = 'status-error';
+      status.textContent = data.error;
+    }
+  } catch (e) {
+    status.className = 'status-error';
+    status.textContent = 'Failed to connect.';
+  }
+  btn.disabled = false;
+  btn.innerHTML = '💾 Save to memory';
+}
+ 
+async function updateStats() {
+  try {
+    const r = await fetch('/get_stats');
+    if (r.ok) {
+      const d = await r.json();
+      document.getElementById('contactCount').textContent = d.contacts ?? 0;
+      document.getElementById('notesCount').textContent = d.notes ?? 0;
+    }
+  } catch(e) {}
+}
+ 
+updateStats();
+</script>
+</body>
+</html>
+ 
