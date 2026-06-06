@@ -51,6 +51,12 @@ def save_notes():
     else:
         return jsonify({"error": "Failed to log memory structure."}), 500
 
+@app.route('/get_stats')
+def get_stats():
+    contacts = len(hindsight_db.storage)
+    notes = sum(len(v) for v in hindsight_db.storage.values())
+    return jsonify({"contacts": contacts, "notes": notes})
+    
 if __name__ == '__main__':
     # Start the local server
     app.run(debug=True)
